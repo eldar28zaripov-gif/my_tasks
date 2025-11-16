@@ -1,71 +1,71 @@
-# Avito API Test Project
+# Проект тестирования API Avito
 
-This canvas contains the required deliverables for Task 2 (full test suite for v1 + v2):
+Этот Canvas содержит все необходимые материалы для Задания 2 (полный тестовый набор для v1 + v2):
 
-- `TESTCASES.md` — test cases specification
-- `README.md` — instructions to run tests
-- `BUGS.md` — bug report template (initially empty)
-- `tests/` — automated pytest test suite and helper modules
+- `TESTCASES.md` — спецификация тест-кейсов
+- `README.md` — инструкции по запуску тестов
+- `BUGS.md` — шаблон для баг-репортов (изначально пустой)
+- `tests/` — автоматизированная тестовая сборка на pytest и вспомогательные модули
 
 ---
 
 # TESTCASES.md
 
-## Overview
-Service host: `https://qa-internship.avito.com`
+## Обзор
+Хост сервиса: `https://qa-internship.avito.com`
 
-Endpoints covered (full set):
-- POST `/api/1/item` — create item
-- GET `/api/1/item/{id}` — get item by id
-- GET `/api/1/{sellerID}/item` — get all items by seller
-- GET `/api/1/statistic/{id}` — get statistic (v1)
-- GET `/api/2/statistic/{id}` — get statistic (v2)
-- DELETE `/api/2/item/{id}` — delete item (v2)
+Покрываемые эндпоинты:
+- POST `/api/1/item` — создание товара
+- GET `/api/1/item/{id}` — получение товара по id
+- GET `/api/1/{sellerID}/item` — все товары продавца
+- GET `/api/1/statistic/{id}` — получение статистики (v1)
+- GET `/api/2/statistic/{id}` — получение статистики (v2)
+- DELETE `/api/2/item/{id}` — удаление товара (v2)
 
-Notes:
-- `sellerID` should be unique (range `111111`–`999999`).
-- POST returns a created `id` — used in subsequent reads/deletes.
-
----
-
-## Test-case categories
-
-### Positive (happy path)
-1. Create item (POST `/api/1/item`) with valid body -> expect 200, response contains `id`, `sellerId`, `name`, `price`, `statistics`, `createdAt`.
-2. Read created item (GET `/api/1/item/{id}`) -> 200, response contains item matching created values.
-3. Read items by seller (GET `/api/1/{sellerID}/item`) -> 200, response list contains created item(s) and `sellerId` matches.
-4. Get statistic v1 (GET `/api/1/statistic/{id}`) -> 200, response as an array of objects with `likes`, `viewCount`, `contacts` (integers).
-5. Get statistic v2 (GET `/api/2/statistic/{id}`) -> 200, same shape expectations.
-6. Delete item v2 (DELETE `/api/2/item/{id}`) -> 200 or empty body. After delete, GET by id returns 404.
-
-### Negative / edge cases
-1. POST with missing required fields (e.g., no `sellerID`) -> expect 400.
-2. POST with invalid types (e.g., string for `price`) -> expect 400.
-3. GET item with non-existent id -> expect 404.
-4. GET items with non-existent sellerID -> expect 200 and empty array (or 404 depending on service behavior) — assert consistent behavior.
-5. GET statistic with malformed id (e.g., empty or special chars) -> expect 400 or 404.
-6. DELETE with non-existent id -> expect 404.
-7. Attempt to create two items with same `id` (if API allows client-specified id) — check uniqueness requirement — but here `id` is server-generated; test for uniqueness across created items.
-8. Concurrency / repeated create attempts with same `sellerID` — multiple items should be created (system supports multiple per seller).
-
-### Security / headers
-1. Send requests without `Content-Type: application/json` where required -> expect 400.
-2. Send `Accept: application/json` missing -> check default behavior (should still return JSON or documented fallback).
-
-### Performance / robustness (basic)
-1. Create 10 items in a loop for same seller -> all should succeed (200) and be returned in `GET /{sellerID}/item`.
-2. Rapid create & delete: create an item and immediately delete via v2 endpoint -> delete should succeed.
-
-### Data validation checks
-- `price` non-negative integer.
-- `sellerId` in response equals sent `sellerID`.
-- `createdAt` parseable as ISO-8601 datetime.
+Примечания:
+- `sellerID` должен быть уникальным (диапазон `111111`–`999999`).
+- POST возвращает созданный `id`, который используется в последующих запросах.
 
 ---
 
-## Test data strategy
-- Generate `sellerID` randomly in range `111111`–`999999` and track created IDs in fixture for cleanup.
-- Use deterministic names like `test-item-<timestamp>` to ease searching.
+## Категории тест-кейсов
+
+### Позитивные (happy path)
+1. Создание товара (POST `/api/1/item`) с корректным телом -> ожидаем 200, в ответе `id`, `sellerId`, `name`, `price`, `statistics`, `createdAt`.
+2. Получение созданного товара (GET `/api/1/item/{id}`) -> 200, данные совпадают с созданными.
+3. Получение товаров продавца (GET `/api/1/{sellerID}/item`) -> 200, список содержит созданные товары с правильным `sellerId`.
+4. Статистика v1 (GET `/api/1/statistic/{id}`) -> 200, массив объектов с `likes`, `viewCount`, `contacts`.
+5. Статистика v2 (GET `/api/2/statistic/{id}`) -> 200, та же структура.
+6. Удаление товара v2 (DELETE `/api/2/item/{id}`) -> 200 или пустое тело. После удаления GET по id -> 404.
+
+### Негативные / граничные случаи
+1. POST без обязательных полей (например, без `sellerID`) -> 400.
+2. POST с некорректным типом данных (например, строка вместо `price`) -> 400.
+3. GET товара с несуществующим id -> 404.
+4. GET товаров несуществующего sellerID -> 200 и пустой массив (или 404, в зависимости от реализации).
+5. GET статистики с некорректным id (пустой, спецсимволы) -> 400 или 404.
+6. DELETE несуществующего id -> 404.
+7. Попытка создать два товара с одинаковым `id` (если API позволяет) — проверка уникальности.
+8. Конкурентные / повторные запросы с одинаковым `sellerID` — должно создаться несколько товаров.
+
+### Безопасность / заголовки
+1. Запрос без `Content-Type: application/json` -> 400.
+2. Запрос без `Accept: application/json` -> проверить поведение (должен вернуться JSON или fallback).
+
+### Производительность / устойчивость
+1. Создать 10 товаров подряд для одного seller -> все 200, отображаются в GET.
+2. Быстрое создание и удаление -> должно успешно удаляться.
+
+### Проверка данных
+- `price` неотрицательный
+- `sellerId` совпадает с отправленным
+- `createdAt` parseable как ISO-8601
+
+---
+
+## Стратегия тестовых данных
+- Генерация `sellerID` случайно в диапазоне `111111`–`999999` и сбор созданных id для очистки.
+- Именование товаров как `test-item-<timestamp>` для удобного поиска.
 
 ---
 
